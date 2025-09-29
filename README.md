@@ -40,6 +40,7 @@ cp .env.example .env
 ```
 
 Edit `.env`:
+
 ```env
 PORT=3000
 
@@ -54,11 +55,13 @@ DIAL_TIMEOUT=20  # Seconds to wait before trying next number
 ### 3. Run the Server
 
 **Development (with auto-reload):**
+
 ```bash
 npm run dev
 ```
 
 **Production:**
+
 ```bash
 npm start
 ```
@@ -66,21 +69,26 @@ npm start
 ## 🌐 Deployment Options
 
 ### Option 1: Railway (Easiest)
+
 1. Push code to GitHub
 2. Connect Railway to your repo
 3. Add environment variables in Railway dashboard
 4. Railway auto-deploys and gives you a public URL
 
 ### Option 2: Cloudflare Workers (Your Setup)
+
 Since you deploy via GitHub → Cloudflare:
+
 1. Push this to your repo
 2. Cloudflare auto-deploys
 3. You'll get a URL like `https://your-app.your-domain.workers.dev`
 
 ### Option 3: Digital Ocean / Heroku / Fly.io
+
 Standard Node.js deployment - any platform works.
 
 ### Option 4: Local with ngrok (Testing)
+
 ```bash
 # Start server
 npm run dev
@@ -88,6 +96,7 @@ npm run dev
 # In another terminal
 ngrok http 3000
 ```
+
 Use the ngrok URL for testing before deploying.
 
 ## 🔗 Connecting to Twilio & Retell
@@ -123,12 +132,14 @@ beyond your capabilities, transfer the call to a live agent.
 ### Add More Numbers
 
 Edit `.env`:
+
 ```env
 PHONE_NUMBER_4=+15554445555
 PHONE_NUMBER_5=+15556667777
 ```
 
 Update `server.js:13` to include them:
+
 ```javascript
 const FALLBACK_NUMBERS = [
   process.env.PHONE_NUMBER_1,
@@ -142,6 +153,7 @@ const FALLBACK_NUMBERS = [
 ### Change Timeout
 
 Adjust `DIAL_TIMEOUT` in `.env` (in seconds):
+
 ```env
 DIAL_TIMEOUT=15  # Shorter timeout
 DIAL_TIMEOUT=30  # Longer timeout
@@ -150,24 +162,26 @@ DIAL_TIMEOUT=30  # Longer timeout
 ### Custom Voicemail Message
 
 Edit `server.js:73`:
+
 ```javascript
 twiml.say(
-  'Our team is currently assisting other customers. Please leave a detailed message.'
+  "Our team is currently assisting other customers. Please leave a detailed message."
 );
 ```
 
 ### Send Notifications
 
 Add email/SMS notifications in `server.js:92`:
+
 ```javascript
-app.post('/voice/save-voicemail', async (req, res) => {
+app.post("/voice/save-voicemail", async (req, res) => {
   const recordingUrl = req.body.RecordingUrl;
 
   // Send email notification
   await sendEmail({
-    to: 'your@email.com',
-    subject: 'New Voicemail',
-    body: `Recording: ${recordingUrl}`
+    to: "your@email.com",
+    subject: "New Voicemail",
+    body: `Recording: ${recordingUrl}`,
   });
 
   // ... rest of code
@@ -177,11 +191,13 @@ app.post('/voice/save-voicemail', async (req, res) => {
 ## 🧪 Testing
 
 ### Test the health endpoint:
+
 ```bash
 curl http://localhost:3000/health
 ```
 
 Should return:
+
 ```json
 {
   "status": "healthy",
@@ -191,6 +207,7 @@ Should return:
 ```
 
 ### Test with Twilio Console:
+
 1. Go to Twilio Console → Phone Numbers
 2. Use "Test" feature to make a test call
 3. Watch server logs for dial attempts
@@ -246,28 +263,33 @@ If all fail → Voicemail
 ## 🔍 Troubleshooting
 
 ### Calls not forwarding:
+
 - Check Twilio webhook URL is correct and publicly accessible
 - Verify phone numbers are in E.164 format (`+[country][number]`)
 - Check server logs for errors
 
 ### Voicemail not recording:
+
 - Ensure `/voice/save-voicemail` endpoint is accessible
 - Check Twilio account has recording enabled
 - Verify transcription is enabled in your Twilio account
 
 ### Numbers in wrong order:
+
 - Array order in `FALLBACK_NUMBERS` determines priority
 - First number in array = first attempt
 
 ## 💰 Cost Considerations
 
 **Twilio charges per:**
+
 - Incoming call minute
 - Outgoing call minute (to each number you try)
 - Recording storage
 - Transcription (optional)
 
 **Example scenario:**
+
 - 3 numbers, 20s timeout each = ~1 minute of dial time
 - If no answer on all 3 = charges for ~1 min + recording
 - If answered on attempt 2 = charges for ~40s dial + conversation time
@@ -288,6 +310,7 @@ If all fail → Voicemail
 ## 🆘 Need Help?
 
 Server logs show detailed info about each call attempt:
+
 ```
 📞 Incoming call from Retell
 📊 Dial result - Attempt 1: no-answer
@@ -297,3 +320,5 @@ Server logs show detailed info about each call attempt:
 ```
 
 Watch the logs to debug issues!
+
+Brought to you by Quentin [Join The Guild](https://www.skool.com/ai-automation-guild/about) if you want to be surrended by true, actual people doing the fulfillment work.
