@@ -50,7 +50,7 @@ async function notifyWebhookAllNumbersFailed(callData) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-API-Key': WEBHOOK_API_KEY
+      'WEBHOOK_API_KEY': WEBHOOK_API_KEY
     },
     body: JSON.stringify(payload)
   });
@@ -116,24 +116,16 @@ app.post('/voice/handle-result', (req, res) => {
 
     dial.number(FALLBACK_NUMBERS[nextAttempt]);
   } else {
-    // All numbers failed - call webhook and handle with voicemail
-    console.log('❌ All numbers unavailable - notifying webhook and going to voicemail');
+    // All numbers failed - call webhook and end call
+    console.log('❌ All numbers unavailable - notifying webhook and ending call');
 
     // Call webhook asynchronously (don't wait for response)
     notifyWebhookAllNumbersFailed(req.body).catch(err => {
       console.error('⚠️ Webhook notification failed:', err.message);
     });
 
-    twiml.say(
-      'All representatives are currently unavailable. Please leave a message after the beep.'
-    );
-
-    twiml.record({
-      maxLength: 60,
-      action: '/voice/save-voicemail',
-      transcribe: true,
-      transcribeCallback: '/voice/voicemail-transcription'
-    });
+    // Just hang up - Retell will handle the rest
+    twiml.hangup();
   }
 
   res.type('text/xml');
