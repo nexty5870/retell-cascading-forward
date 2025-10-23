@@ -12,13 +12,55 @@ app.use(express.urlencoded({ extended: false }));
 
 // Your fallback phone numbers (in order of priority)
 const FALLBACK_NUMBERS = [
-  process.env.PHONE_NUMBER_1 || '+1234567890',
-  process.env.PHONE_NUMBER_2 || '+0987654321',
-  process.env.PHONE_NUMBER_3 || '+1122334455'
-];
+  process.env.PHONE_NUMBER_1,
+  process.env.PHONE_NUMBER_2,
+  process.env.PHONE_NUMBER_3
+].filter(Boolean); // Remove any undefined/null entries
 
 // Timeout in seconds for each dial attempt
 const DIAL_TIMEOUT = parseInt(process.env.DIAL_TIMEOUT) || 20;
+
+// Webhook configuration for failed calls
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
+const WEBHOOK_API_KEY = process.env.WEBHOOK_API_KEY;
+
+/**
+ * Notify webhook when all numbers fail to answer
+ */
+async function notifyWebhookAllNumbersFailed(callData) {
+  if (!WEBHOOK_URL || !WEBHOOK_API_KEY) {
+    console.log('⚠️ Webhook not configured - skipping notification');
+    return;
+  }
+
+  const payload = {
+    event: 'all_numbers_unavailable',
+    timestamp: new Date().toISOString(),
+    callSid: callData.CallSid,
+    from: callData.From,
+    to: callData.To,
+    attemptedNumbers: FALLBACK_NUMBERS,
+    totalAttempts: FALLBACK_NUMBERS.length,
+    dialStatus: callData.DialCallStatus
+  };
+
+  console.log('📡 Sending webhook notification to n8n:', WEBHOOK_URL);
+
+  const response = await fetch(WEBHOOK_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': WEBHOOK_API_KEY
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Webhook returned ${response.status}: ${response.statusText}`);
+  }
+
+  console.log('✅ Webhook notification sent successfully');
+}
 
 /**
  * Initial TwiML endpoint - Retell transfers here
@@ -74,8 +116,13 @@ app.post('/voice/handle-result', (req, res) => {
 
     dial.number(FALLBACK_NUMBERS[nextAttempt]);
   } else {
-    // All numbers failed - handle with voicemail or message
-    console.log('❌ All numbers unavailable - going to voicemail');
+    // All numbers failed - call webhook and handle with voicemail
+    console.log('❌ All numbers unavailable - notifying webhook and going to voicemail');
+
+    // Call webhook asynchronously (don't wait for response)
+    notifyWebhookAllNumbersFailed(req.body).catch(err => {
+      console.error('⚠️ Webhook notification failed:', err.message);
+    });
 
     twiml.say(
       'All representatives are currently unavailable. Please leave a message after the beep.'
