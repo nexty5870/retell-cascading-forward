@@ -90,7 +90,12 @@ app.post('/voice/handle-result', (req, res) => {
   const dialStatus = req.body.DialCallStatus;
   const attempt = parseInt(req.query.attempt) || 0;
 
-  console.log(`📊 Dial result - Attempt ${attempt + 1}: ${dialStatus}`);
+  console.log(`📊 Dial result - Attempt ${attempt + 1}: ${dialStatus}`, {
+    callSid: req.body.CallSid,
+    from: req.body.From,
+    to: req.body.To,
+    fullBody: req.body // Full debugging info
+  });
 
   const twiml = new twilio.twiml.VoiceResponse();
 
@@ -103,11 +108,12 @@ app.post('/voice/handle-result', (req, res) => {
     return;
   }
 
-  // Try next number if available
+  // ANY NON-COMPLETED STATUS = FAILED ATTEMPT
+  // (no-answer, busy, failed, canceled, etc.)
   const nextAttempt = attempt + 1;
 
   if (nextAttempt < FALLBACK_NUMBERS.length) {
-    console.log(`🔄 Trying next number: ${FALLBACK_NUMBERS[nextAttempt]}`);
+    console.log(`🔄 Trying next number (Attempt ${nextAttempt + 1}): ${FALLBACK_NUMBERS[nextAttempt]}`);
 
     const dial = twiml.dial({
       action: `/voice/handle-result?attempt=${nextAttempt}`,
